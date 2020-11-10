@@ -23,7 +23,7 @@ public class MapGenerator : MonoBehaviour
     public Tilemap playerMap;
 
     [Range(4, 10)]
-    public int mapSize;
+    public static int mapSize;
 
     private List<GameObject> prefabs = new List<GameObject>();
 

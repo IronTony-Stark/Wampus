@@ -1,12 +1,12 @@
-﻿﻿namespace Logic
+﻿namespace Logic
 {
     public enum Symbol
     {
-        B, // Breathe
-        S, // Stench
-        G, // Glitter
-        W, // Wampus
-        P, // Pit
-        E, // Exit aka Gold or Victory
+        Wind, // Breathe
+        Stench, // Stench
+        Glitter, // Glitter
+        Wampus, // Wampus
+        Pit, // Pit
+        Exit, // Exit aka Gold or Victory
     }
 }
