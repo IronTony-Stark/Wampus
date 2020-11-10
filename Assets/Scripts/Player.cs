@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using Logic;
 using UnityEngine;
@@ -60,7 +61,7 @@ public class Player : MonoBehaviour
     {
         if (!isGameEnd && positionToMove == transform.position && !isThinking)
         {
-            // StartCoroutine(ProccedMove());
+            StartCoroutine(ProccedMove());
         }
     }
 
@@ -78,6 +79,9 @@ public class Player : MonoBehaviour
     private IEnumerator ProccedMove()
     {
         isThinking = true;
+        Debug.Log("Starting thing");
+
+        yield return new WaitForSeconds(1);
 
         int x = (int)transform.position.x;
         int y = (int)transform.position.y;
@@ -92,6 +96,8 @@ public class Player : MonoBehaviour
 
         brain.Tell(new Not(new CellSymbol(x, y, Symbol.Pit)));
         brain.Tell(new Not(new CellSymbol(x, y, Symbol.Wampus)));
+
+        Debug.Log("Percepted: " + String.Join(", ", percepted));
 
         CellSymbol wind = new CellSymbol(x, y, Symbol.Wind);
         if (percepted.Contains(Symbol.Wind))
@@ -114,16 +120,16 @@ public class Player : MonoBehaviour
         }
 
         CellSymbol glitter = new CellSymbol(x, y, Symbol.Glitter);
-        if (percepted.Contains(Symbol.Stench))
+        if (percepted.Contains(Symbol.Glitter))
         {
-            brain.Tell(stench);
+            brain.Tell(glitter);
             // TODO End game;
             Debug.Log("WIN!");
             isGameEnd = true;
         }
         else
         {
-            brain.Tell(new Not(stench));
+            brain.Tell(new Not(glitter));
         }
 
 
@@ -158,10 +164,11 @@ public class Player : MonoBehaviour
         {
             Cell next = toVisit.Dequeue();
 
-            if (!findNextCell &&
-                !brain.Ask(new CellSymbol(next.x, next.y, Symbol.Pit)) &&
+            Debug.Log("Next move check: " + next);
+            if (!brain.Ask(new CellSymbol(next.x, next.y, Symbol.Pit)) &&
                 !brain.Ask(new CellSymbol(next.x, next.y, Symbol.Wampus)))
             {
+                Debug.Log("Next move!");
                 positionToMove = new Vector3Int(next.x, next.y, (int)transform.position.z);
                 findNextCell = true;
             }
@@ -185,6 +192,10 @@ public class Player : MonoBehaviour
         {
             this.x = x;
             this.y = y;
+        }
+
+        public override string ToString(){
+            return ("(" + x + "; " + y + ")");
         }
     }
 }
