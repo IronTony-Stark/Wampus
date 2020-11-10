@@ -36,24 +36,38 @@ public class Player : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.UpArrow))
-        {
-            positionToMove += Vector3Int.up;
-        }
-        if (Input.GetKeyDown(KeyCode.DownArrow))
-        {
-            positionToMove += Vector3Int.down;
-        }
-        if (Input.GetKeyDown(KeyCode.RightArrow))
-        {
-            positionToMove += Vector3Int.right;
-        }
-        if (Input.GetKeyDown(KeyCode.LeftArrow))
-        {
-            positionToMove += Vector3Int.left;
-        }
+        // if (Input.GetKeyDown(KeyCode.UpArrow))
+        // {
+        //     positionToMove += Vector3Int.up;
+        // }
+        // if (Input.GetKeyDown(KeyCode.DownArrow))
+        // {
+        //     positionToMove += Vector3Int.down;
+        // }
+        // if (Input.GetKeyDown(KeyCode.RightArrow))
+        // {
+        //     positionToMove += Vector3Int.right;
+        // }
+        // if (Input.GetKeyDown(KeyCode.LeftArrow))
+        // {
+        //     positionToMove += Vector3Int.left;
+        // }
 
         transform.position = Vector3.MoveTowards(transform.position, positionToMove, Time.deltaTime * speed);
+
+        if (Input.GetKeyDown(KeyCode.G))
+        {
+            transform.position = new Vector3(0, 0, transform.position.z);
+
+            world.GenerateWorld();
+            isGameEnd = false;
+            isThinking = false;
+
+            positionToMove = new Vector3Int(0, 0, (int)transform.position.z);
+            brain = new Brain();
+            percepted = new List<Symbol>();
+            toVisit = new Queue<Cell>();
+        }
     }
 
 
@@ -165,8 +179,18 @@ public class Player : MonoBehaviour
             Cell next = toVisit.Dequeue();
 
             Debug.Log("Next move check: " + next);
-            if (!brain.Ask(new CellSymbol(next.x, next.y, Symbol.Pit)) &&
-                !brain.Ask(new CellSymbol(next.x, next.y, Symbol.Wampus)))
+
+            CellSymbol pit = new CellSymbol(next.x, next.y, Symbol.Pit);
+            ILogicalExpression isPit = Utils.HasPit(next.x, next.y);
+            // ILogicalExpression pitExpr = isPit ? (ILogicalExpression)pit : (ILogicalExpression)new Not(pit);
+            brain.Tell(isPit);
+
+            CellSymbol wampus = new CellSymbol(next.x, next.y, Symbol.Wampus);
+            ILogicalExpression isWampus = Utils.HasWampus(next.x, next.y);
+            // ILogicalExpression wampusExpr = isWampus ? (ILogicalExpression)wampus : (ILogicalExpression)new Not(wampus);
+            brain.Tell(isWampus);
+
+            if (!isPit && !isWampus)
             {
                 Debug.Log("Next move!");
                 positionToMove = new Vector3Int(next.x, next.y, (int)transform.position.z);
@@ -174,7 +198,8 @@ public class Player : MonoBehaviour
             }
         }
 
-        if (!findNextCell){
+        if (!findNextCell)
+        {
             Debug.Log("End of game");
             isGameEnd = true;
         }
@@ -194,7 +219,8 @@ public class Player : MonoBehaviour
             this.y = y;
         }
 
-        public override string ToString(){
+        public override string ToString()
+        {
             return ("(" + x + "; " + y + ")");
         }
     }

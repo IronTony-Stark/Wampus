@@ -31,22 +31,13 @@ public class MapGenerator : MonoBehaviour
     // Start is called before the first frame update
     void Awake()
     {
-        ClearWorld();
         GenerateWorld();
-    }
 
-    // Update is called once per frame
-    void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.G))
-        {
-            ClearWorld();
-            GenerateWorld();
-        }
     }
-
-    private void GenerateWorld()
+    public void GenerateWorld()
     {
+        ClearWorld();
+
         for (int y = -1; y < mapSize + 1; y++)
         {
             for (int x = -1; x < mapSize + 1; x++)
