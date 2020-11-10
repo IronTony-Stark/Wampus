@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Logic;
+using Unity.Collections;
+using Unity.Jobs;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 using static Logic.Utils;
@@ -37,29 +40,44 @@ public class Player : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.UpArrow))
-        {
-            positionToMove += Vector3Int.up;
-        }
-        if (Input.GetKeyDown(KeyCode.DownArrow))
-        {
-            positionToMove += Vector3Int.down;
-        }
-        if (Input.GetKeyDown(KeyCode.RightArrow))
-        {
-            positionToMove += Vector3Int.right;
-        }
-        if (Input.GetKeyDown(KeyCode.LeftArrow))
-        {
-            positionToMove += Vector3Int.left;
-        }
+        // if (Input.GetKeyDown(KeyCode.UpArrow))
+        // {
+        //     positionToMove += Vector3Int.up;
+        // }
+        // if (Input.GetKeyDown(KeyCode.DownArrow))
+        // {
+        //     positionToMove += Vector3Int.down;
+        // }
+        // if (Input.GetKeyDown(KeyCode.RightArrow))
+        // {
+        //     positionToMove += Vector3Int.right;
+        // }
+        // if (Input.GetKeyDown(KeyCode.LeftArrow))
+        // {
+        //     positionToMove += Vector3Int.left;
+        // }
 
         transform.position = Vector3.MoveTowards(transform.position, positionToMove, Time.deltaTime * speed);
+
+        if (Input.GetKeyDown(KeyCode.G))
+        {
+            transform.position = new Vector3(0, 0, transform.position.z);
+
+            world.GenerateWorld();
+            isGameEnd = false;
+            isThinking = false;
+
+            positionToMove = new Vector3Int(0, 0, (int)transform.position.z);
+            brain = new Brain();
+            percepted = new List<Symbol>();
+            toVisit = new Queue<Cell>();
+        }
     }
 
 
     private void FixedUpdate()
     {
+        // Debug.Log("Updated");
         if (!isGameEnd && positionToMove == transform.position && !isThinking)
         {
             StartCoroutine(ProccedMove());
@@ -75,7 +93,6 @@ public class Player : MonoBehaviour
         if (other.tag == "stench")
             percepted.Add(Symbol.Stench);
     }
-
 
     private IEnumerator ProccedMove()
     {
@@ -156,29 +173,42 @@ public class Player : MonoBehaviour
             toVisit.Enqueue(new Cell(x, y + 1));
         }
 
+
         bool findNextCell = false;
-        while (toVisit.Count != 0)
+        int z = (int)transform.position.z;
+        Task task = new Task(() =>
         {
-            Cell next = toVisit.Dequeue();
+            Vector3Int res = Vector3Int.zero; 
 
-            Debug.Log("Next move check: " + next);
-            if (brain.Ask(new Not(HasWampus(next.x, next.y))) &&
-                brain.Ask(new Not(HasPit(next.x, next.y))))
+            while (toVisit.Count != 0)
             {
-                Debug.Log("Next move!");
-                positionToMove = new Vector3Int(next.x, next.y, (int)transform.position.z);
-                findNextCell = true;
+                Cell next = toVisit.Dequeue();
+
+                Debug.Log("Next move check: " + next);
+                if (brain.Ask(new Not(HasWampus(next.x, next.y))) &&
+                    brain.Ask(new Not(HasPit(next.x, next.y))))
+                {
+                    Debug.Log("Next move!");
+                    res = new Vector3Int(next.x, next.y, z);
+                    findNextCell = true;
+                    Debug.Log(positionToMove);
+                }
             }
-        }
 
-        if (!findNextCell){
-            Debug.Log("End of game");
-            isGameEnd = true;
-        }
+            if (!findNextCell)
+            {
+                Debug.Log("End of game");
+                isGameEnd = true;
+            }
 
-        isThinking = false;
-        yield return new WaitForSeconds(1);
+            positionToMove = res;
+            isThinking = false;
+        });
+        task.Start();
+
+
     }
+
 
     private class Cell
     {
@@ -191,7 +221,8 @@ public class Player : MonoBehaviour
             this.y = y;
         }
 
-        public override string ToString(){
+        public override string ToString()
+        {
             return ("(" + x + "; " + y + ")");
         }
     }
