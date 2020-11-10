@@ -7,7 +7,7 @@ namespace Logic
     {
         private static readonly int rows = 4;
         private static readonly int cols = 4;
-        private static List<(int, int)> visisted = new List<(int, int)>();
+        private static readonly HashSet<(int, int)> reachable = new HashSet<(int, int)>();
 
         public static ILogicalExpression HasWampus(int row, int col)
         {
@@ -101,9 +101,9 @@ namespace Logic
             return symbols;
         }
 
-        public static void AddVisited(int row, int col)
+        public static void AddReachable(int row, int col)
         {
-            visisted.Add((row, col));
+            reachable.Add((row, col));
         }
     }
 }
