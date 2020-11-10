@@ -5,9 +5,9 @@ namespace Logic
 {
     public class Utils
     {
-        private static readonly int rows = 4;
-        private static readonly int cols = 4;
-        private static List<(int, int)> visisted = new List<(int, int)>();
+        private static readonly int rows = MapGenerator.mapSize;
+        private static readonly int cols = MapGenerator.mapSize;
+        private static readonly HashSet<(int, int)> reachable = new HashSet<(int, int)>();
 
         public static ILogicalExpression HasWampus(int row, int col)
         {
@@ -30,22 +30,22 @@ namespace Logic
             var symbols = new List<ILogicalExpression>();
 
             if (row > 0
-                // && visisted.Contains((row - 1, col))
+                && reachable.Contains((row - 1, col))
             )
                 symbols.Add(new CellSymbol(row - 1, col, s));
 
             if (col > 0
-                // && visisted.Contains((row, col - 1))
+                && reachable.Contains((row, col - 1))
             )
                 symbols.Add(new CellSymbol(row, col - 1, s));
 
             if (row < rows - 1
-                // && visisted.Contains((row + 1, col))
+                && reachable.Contains((row + 1, col))
             )
                 symbols.Add(new CellSymbol(row + 1, col, s));
 
             if (col < cols - 1
-                // && visisted.Contains((row, col + 1))
+                && reachable.Contains((row, col + 1))
             )
                 symbols.Add(new CellSymbol(row, col + 1, s));
 
@@ -57,43 +57,43 @@ namespace Logic
             var symbols = new List<ILogicalExpression>();
 
             if (row > 1
-                // && visisted.Contains((row - 2, col))
+                && reachable.Contains((row - 2, col))
             )
                 symbols.Add(new Not(new CellSymbol(row - 2, col, s)));
 
             if (col > 1
-                // && visisted.Contains((row, col - 2))
+                && reachable.Contains((row, col - 2))
             )
                 symbols.Add(new Not(new CellSymbol(row, col - 2, s)));
 
             if (row < rows - 2
-                // && visisted.Contains((row + 2, col))
+                && reachable.Contains((row + 2, col))
             )
                 symbols.Add(new Not(new CellSymbol(row + 2, col, s)));
 
             if (col < cols - 2
-                // && visisted.Contains((row, col + 2))
+                && reachable.Contains((row, col + 2))
             )
                 symbols.Add(new Not(new CellSymbol(row, col + 2, s)));
 
 
             if (row > 0 && col > 0
-                // && visisted.Contains((row - 1, col - 1))
+                && reachable.Contains((row - 1, col - 1))
             )
                 symbols.Add(new Not(new CellSymbol(row - 1, col - 1, s)));
 
             if (row > 0 && col < cols - 1
-                // && visisted.Contains((row - 1, col + 1))
+                && reachable.Contains((row - 1, col + 1))
             )
                 symbols.Add(new Not(new CellSymbol(row - 1, col + 1, s)));
 
             if (row < rows - 1 && col < cols - 1
-                // && visisted.Contains((row + 1, col + 1))
+                && reachable.Contains((row + 1, col + 1))
             )
                 symbols.Add(new Not(new CellSymbol(row + 1, col + 1, s)));
 
             if (row < rows - 1 && col > 0
-                // && visisted.Contains((row + 1, col - 1))
+                && reachable.Contains((row + 1, col - 1))
             )
                 symbols.Add(new Not(new CellSymbol(row + 1, col - 1, s)));
 
@@ -101,9 +101,9 @@ namespace Logic
             return symbols;
         }
 
-        public static void AddVisited(int row, int col)
+        public static void AddReachable(int row, int col)
         {
-            visisted.Add((row, col));
+            reachable.Add((row, col));
         }
     }
 }
