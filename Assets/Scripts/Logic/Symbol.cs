@@ -1,4 +1,4 @@
-﻿namespace Logic
+﻿﻿namespace Logic
 {
     public enum Symbol
     {
@@ -7,6 +7,6 @@
         G, // Glitter
         W, // Wampus
         P, // Pit
-        E, // Exit aka Gold or Vicotory
+        E, // Exit aka Gold or Victory
     }
 }

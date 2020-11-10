@@ -1,32 +1,31 @@
-﻿using System;
+﻿﻿﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Logic
 {
-    [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class Entailment
+    public static class Entailment
     {
-        public bool TTEntails(Sentence kb, Sentence query)
+        public static bool TTEntails(ILogicalExpression kb, ILogicalExpression query)
         {
             var kbSymbols = kb.GetSymbols();
             var querySymbols = query.GetSymbols();
-            if (querySymbols.Any(s => !kbSymbols.Contains(s)))
-            {
-                throw new Exception("Query uses symbols that are absent in the knowledge base");
-            }
+            kbSymbols.AddRange(querySymbols);
 
             return TTCheckAll(kb, query, kbSymbols, new Dictionary<CellSymbol, bool>());
         }
 
-        private bool TTCheckAll(Sentence kb, Sentence query,
-            List<CellSymbol> symbols, IDictionary<CellSymbol, bool> model)
+        private static bool TTCheckAll(ILogicalExpression kb, ILogicalExpression query,
+            IReadOnlyList<CellSymbol> symbols, IDictionary<CellSymbol, bool> model)
         {
             if (symbols.Count == 0)
             {
                 if (PLTrue(kb, model))
-                    return PLTrue(query, model);
+                {
+                    bool res = PLTrue(query, model);
+
+                    return res;
+                }
 
                 return true;
             }
@@ -39,7 +38,7 @@ namespace Logic
                    TTCheckAll(kb, query, rest, Extend(p, false, model));
         }
 
-        private static bool PLTrue(Sentence expression, IDictionary<CellSymbol, bool> model)
+        private static bool PLTrue(ILogicalExpression expression, IDictionary<CellSymbol, bool> model)
         {
             return expression.Eval(model);
         }

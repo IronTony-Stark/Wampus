@@ -1,21 +1,17 @@
-﻿namespace Logic
+﻿﻿﻿namespace Logic
 {
     public class Brain
     {
-        public void Tell(CellSymbol cellSymbol)
+        private readonly KnowledgeBase kb = new KnowledgeBase();
+
+        public void Tell(ILogicalExpression expr)
         {
-            // TODO tell
+            kb.Add(expr);
         }
-        
-        public void TellNot(CellSymbol cellSymbol)
+
+        public bool Ask(ILogicalExpression query)
         {
-            // TODO tell not
-        }
-        
-        public bool Ask(CellSymbol cellSymbol)
-        {
-            // TODO ask
-            return true;
+            return Entailment.TTEntails(kb, query);
         }
     }
 }
