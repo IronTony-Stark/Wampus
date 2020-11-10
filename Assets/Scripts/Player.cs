@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Logic;
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 public class Player : MonoBehaviour
 {
@@ -12,15 +13,24 @@ public class Player : MonoBehaviour
     private Brain brain;
 
     private List<Symbol> percepted;
+    private bool isThinking = false;
 
-    private void Create()
+    private MapGenerator world;
+
+    private Queue<Cell> toVisit;
+
+    private bool isGameEnd = false;
+
+    private void Start()
     {
         positionToMove = new Vector3Int(0, 0, (int)transform.position.z);
         brain = new Brain();
         percepted = new List<Symbol>();
 
-        CellSymbol cellSymbol = new CellSymbol((int)transform.position.x, (int)transform.position.y, Symbol.Wind);
-        brain.Tell(new Not(cellSymbol));
+        world = GameObject.Find("GameManager").GetComponent<MapGenerator>();
+
+        toVisit = new Queue<Cell>();
+        // toVisit.Enqueue(new Cell(0, 0));
     }
 
     private void Update()
@@ -46,9 +56,12 @@ public class Player : MonoBehaviour
     }
 
 
-    private void FixedUpdate(){
-        if (positionToMove == transform.position)
-            StartCoroutine(ProccedMove());
+    private void FixedUpdate()
+    {
+        if (!isGameEnd && positionToMove == transform.position && !isThinking)
+        {
+            // StartCoroutine(ProccedMove());
+        }
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -62,7 +75,116 @@ public class Player : MonoBehaviour
     }
 
 
-    private IEnumerator ProccedMove(){
-        yield return null;
+    private IEnumerator ProccedMove()
+    {
+        isThinking = true;
+
+        int x = (int)transform.position.x;
+        int y = (int)transform.position.y;
+
+        if (world.levelMap.GetTile(new Vector3Int(x, y, (int)world.levelMap.transform.position.z)) == null ||
+            world.entitiesMap.GetTile(new Vector3Int(x, y, (int)world.entitiesMap.transform.position.z)) == world.wampus)
+        {
+            Debug.LogError("Failure");
+            isGameEnd = true;
+        }
+
+
+        brain.Tell(new Not(new CellSymbol(x, y, Symbol.Pit)));
+        brain.Tell(new Not(new CellSymbol(x, y, Symbol.Wampus)));
+
+        CellSymbol wind = new CellSymbol(x, y, Symbol.Wind);
+        if (percepted.Contains(Symbol.Wind))
+        {
+            brain.Tell(wind);
+        }
+        else
+        {
+            brain.Tell(new Not(wind));
+        }
+
+        CellSymbol stench = new CellSymbol(x, y, Symbol.Stench);
+        if (percepted.Contains(Symbol.Stench))
+        {
+            brain.Tell(stench);
+        }
+        else
+        {
+            brain.Tell(new Not(stench));
+        }
+
+        CellSymbol glitter = new CellSymbol(x, y, Symbol.Glitter);
+        if (percepted.Contains(Symbol.Stench))
+        {
+            brain.Tell(stench);
+            // TODO End game;
+            Debug.Log("WIN!");
+            isGameEnd = true;
+        }
+        else
+        {
+            brain.Tell(new Not(stench));
+        }
+
+
+        Utils.AddReachable(x, y);
+        if (x - 1 >= 0 && y >= 0)
+        {
+            // Left
+            Utils.AddReachable(x - 1, y);
+            toVisit.Enqueue(new Cell(x - 1, y));
+        }
+        if (x >= 0 && y - 1 >= 0)
+        {
+            // Down
+            Utils.AddReachable(x, y - 1);
+            toVisit.Enqueue(new Cell(x, y - 1));
+        }
+        if (x + 1 >= 0 && x + 1 < MapGenerator.mapSize && y >= 0)
+        {
+            // Right
+            Utils.AddReachable(x + 1, y);
+            toVisit.Enqueue(new Cell(x + 1, y));
+        }
+        if (x >= 0 && y + 1 >= 0 && y + 1 < MapGenerator.mapSize)
+        {
+            // Up
+            Utils.AddReachable(x, y + 1);
+            toVisit.Enqueue(new Cell(x, y + 1));
+        }
+
+        bool findNextCell = false;
+        while (toVisit.Count != 0)
+        {
+            Cell next = toVisit.Dequeue();
+
+            if (!findNextCell &&
+                !brain.Ask(new CellSymbol(next.x, next.y, Symbol.Pit)) &&
+                !brain.Ask(new CellSymbol(next.x, next.y, Symbol.Wampus)))
+            {
+                positionToMove = new Vector3Int(next.x, next.y, (int)transform.position.z);
+                findNextCell = true;
+            }
+        }
+
+        if (!findNextCell){
+            Debug.Log("End of game");
+            isGameEnd = true;
+        }
+
+        isThinking = false;
+        yield return new WaitForSeconds(1);
+    }
+
+    private class Cell
+    {
+        public int x { get; set; }
+        public int y { get; set; }
+
+        public Cell(int x, int y)
+        {
+            this.x = x;
+            this.y = y;
+        }
     }
 }

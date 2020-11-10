@@ -23,14 +23,15 @@ public class MapGenerator : MonoBehaviour
     public Tilemap playerMap;
 
     [Range(4, 10)]
-    public static int mapSize;
+    public static int mapSize = 4;
 
     private List<GameObject> prefabs = new List<GameObject>();
 
 
     // Start is called before the first frame update
-    void Start()
+    void Awake()
     {
+        ClearWorld();
         GenerateWorld();
     }
 
