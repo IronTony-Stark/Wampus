@@ -340,7 +340,6 @@ MonoBehaviour:
   levelMap: {fileID: 1172033313}
   entitiesMap: {fileID: 19693606}
   playerMap: {fileID: 588987110}
-  mapSize: 4
 --- !u!114 &258654749
 MonoBehaviour:
   m_ObjectHideFlags: 0
