@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Logic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
+using static Logic.Utils;
 
 public class Player : MonoBehaviour
 {
@@ -127,35 +128,31 @@ public class Player : MonoBehaviour
             Debug.Log("WIN!");
             isGameEnd = true;
         }
-        else
-        {
-            brain.Tell(new Not(glitter));
-        }
 
 
-        Utils.AddReachable(x, y);
+        AddReachable(x, y);
         if (x - 1 >= 0 && y >= 0)
         {
             // Left
-            Utils.AddReachable(x - 1, y);
+            AddReachable(x - 1, y);
             toVisit.Enqueue(new Cell(x - 1, y));
         }
         if (x >= 0 && y - 1 >= 0)
         {
             // Down
-            Utils.AddReachable(x, y - 1);
+            AddReachable(x, y - 1);
             toVisit.Enqueue(new Cell(x, y - 1));
         }
         if (x + 1 >= 0 && x + 1 < MapGenerator.mapSize && y >= 0)
         {
             // Right
-            Utils.AddReachable(x + 1, y);
+            AddReachable(x + 1, y);
             toVisit.Enqueue(new Cell(x + 1, y));
         }
         if (x >= 0 && y + 1 >= 0 && y + 1 < MapGenerator.mapSize)
         {
             // Up
-            Utils.AddReachable(x, y + 1);
+            AddReachable(x, y + 1);
             toVisit.Enqueue(new Cell(x, y + 1));
         }
 
@@ -165,8 +162,8 @@ public class Player : MonoBehaviour
             Cell next = toVisit.Dequeue();
 
             Debug.Log("Next move check: " + next);
-            if (!brain.Ask(new CellSymbol(next.x, next.y, Symbol.Pit)) &&
-                !brain.Ask(new CellSymbol(next.x, next.y, Symbol.Wampus)))
+            if (brain.Ask(new Not(HasWampus(next.x, next.y))) &&
+                brain.Ask(new Not(HasPit(next.x, next.y))))
             {
                 Debug.Log("Next move!");
                 positionToMove = new Vector3Int(next.x, next.y, (int)transform.position.z);
