@@ -112,8 +112,8 @@ public class Player : MonoBehaviour
         }
 
 
-        brain.Tell(new Not(new CellSymbol(x, y, Symbol.Pit)));
-        brain.Tell(new Not(new CellSymbol(x, y, Symbol.Wampus)));
+        // brain.Tell(new Not(new CellSymbol(x, y, Symbol.Pit)));
+        // brain.Tell(new Not(new CellSymbol(x, y, Symbol.Wampus)));
 
         Debug.Log("Percepted: " + String.Join(", ", percepted));
 

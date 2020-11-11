@@ -12,16 +12,16 @@ namespace Logic
         public static ILogicalExpression HasWampus(int row, int col)
         {
             var logicalExpressions = GetSurroundingBy(row, col, Symbol.Stench);
-            var possiblePositionsBy = GetPossiblePositionsBy(row, col, Symbol.Wampus);
-            logicalExpressions.AddRange(possiblePositionsBy);
+            // var possiblePositionsBy = GetPossiblePositionsBy(row, col, Symbol.Wampus);
+            // logicalExpressions.AddRange(possiblePositionsBy);
             return new And(logicalExpressions);
         }
 
         public static ILogicalExpression HasPit(int row, int col)
         {
             var logicalExpressions = GetSurroundingBy(row, col, Symbol.Wind);
-            var possiblePositionsBy = GetPossiblePositionsBy(row, col, Symbol.Pit);
-            logicalExpressions.AddRange(possiblePositionsBy);
+            // var possiblePositionsBy = GetPossiblePositionsBy(row, col, Symbol.Pit);
+            // logicalExpressions.AddRange(possiblePositionsBy);
             return new And(logicalExpressions);
         }
 
