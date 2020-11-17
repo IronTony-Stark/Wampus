@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Logic;
 using Unity.Collections;
@@ -14,7 +15,16 @@ public class Player : MonoBehaviour
 
     public float speed = 1;
 
+
+    public bool IsGameEnd = false;
+    public bool IsWin = false;
+    public bool IsLoose = false;
+    public int StepCount = 0;
+
+
+
     private Vector3Int positionToMove;
+    private Queue<Cell> path;
     private Brain brain;
 
     private List<Symbol> percepted;
@@ -22,64 +32,49 @@ public class Player : MonoBehaviour
 
     private MapGenerator world;
 
-    private Queue<Cell> toVisit;
-
-    private bool isGameEnd = false;
+    private HashSet<Cell> visited;
+    private HashSet<Cell> safeCells;
+    private HashSet<Cell> dangerousCells;
 
     private void Start()
     {
         positionToMove = new Vector3Int(0, 0, (int)transform.position.z);
+        path = new Queue<Cell>();
+
         brain = new Brain();
         percepted = new List<Symbol>();
 
         world = GameObject.Find("GameManager").GetComponent<MapGenerator>();
 
-        toVisit = new Queue<Cell>();
-        // toVisit.Enqueue(new Cell(0, 0));
+        visited = new HashSet<Cell>();
+        safeCells = new HashSet<Cell>();
+        dangerousCells = new HashSet<Cell>();
     }
 
     private void Update()
     {
-        // if (Input.GetKeyDown(KeyCode.UpArrow))
-        // {
-        //     positionToMove += Vector3Int.up;
-        // }
-        // if (Input.GetKeyDown(KeyCode.DownArrow))
-        // {
-        //     positionToMove += Vector3Int.down;
-        // }
-        // if (Input.GetKeyDown(KeyCode.RightArrow))
-        // {
-        //     positionToMove += Vector3Int.right;
-        // }
-        // if (Input.GetKeyDown(KeyCode.LeftArrow))
-        // {
-        //     positionToMove += Vector3Int.left;
-        // }
-
         transform.position = Vector3.MoveTowards(transform.position, positionToMove, Time.deltaTime * speed);
 
         if (Input.GetKeyDown(KeyCode.G))
         {
-            transform.position = new Vector3(0, 0, transform.position.z);
-
-            world.GenerateWorld();
-            isGameEnd = false;
-            isThinking = false;
-
-            positionToMove = new Vector3Int(0, 0, (int)transform.position.z);
-            brain = new Brain();
-            percepted = new List<Symbol>();
-            toVisit = new Queue<Cell>();
+            ResetPlayer();
         }
     }
 
 
     private void FixedUpdate()
     {
-        // Debug.Log("Updated");
-        if (!isGameEnd && positionToMove == transform.position && !isThinking)
+        if (!IsGameEnd && positionToMove == transform.position && !isThinking)
         {
+            if (path.Count > 0)
+            {
+                Cell nextCell = path.Dequeue();
+                Debug.Log("Move to next safe cell: " + nextCell);
+                positionToMove = new Vector3Int(nextCell.x, nextCell.y, (int)transform.position.z);
+                percepted.Clear();
+                ++StepCount;
+                return;
+            }
             StartCoroutine(ProccedMove());
         }
     }
@@ -92,6 +87,26 @@ public class Player : MonoBehaviour
             percepted.Add(Symbol.Glitter);
         if (other.tag == "stench")
             percepted.Add(Symbol.Stench);
+    }
+
+
+    public void ResetPlayer()
+    {
+        transform.position = new Vector3(0, 0, transform.position.z);
+
+        IsGameEnd = false;
+        IsWin = false;
+        IsLoose = false;
+        isThinking = false;
+        StepCount = 0;
+
+        positionToMove = new Vector3Int(0, 0, (int)transform.position.z);
+        brain = new Brain();
+        percepted.Clear();
+
+        visited.Clear();
+        safeCells.Clear();
+        dangerousCells.Clear();
     }
 
     private IEnumerator ProccedMove()
@@ -108,12 +123,9 @@ public class Player : MonoBehaviour
             world.entitiesMap.GetTile(new Vector3Int(x, y, (int)world.entitiesMap.transform.position.z)) == world.wampus)
         {
             Debug.LogError("Failure");
-            isGameEnd = true;
+            IsGameEnd = true;
+            IsLoose = true;
         }
-
-
-        // brain.Tell(new Not(new CellSymbol(x, y, Symbol.Pit)));
-        // brain.Tell(new Not(new CellSymbol(x, y, Symbol.Wampus)));
 
         Debug.Log("Percepted: " + String.Join(", ", percepted));
 
@@ -141,72 +153,165 @@ public class Player : MonoBehaviour
         if (percepted.Contains(Symbol.Glitter))
         {
             brain.Tell(glitter);
-            // TODO End game;
             Debug.Log("WIN!");
-            isGameEnd = true;
+            IsGameEnd = true;
+            IsWin = true;
         }
 
-
+        // add visited cells
         AddReachable(x, y);
-        if (x - 1 >= 0 && y >= 0)
+        Cell currCell = new Cell(x, y);
+        visited.Add(currCell);
+
+        // if nothing in this cell, then neighbours is safe
+        if (percepted.Count == 0)
         {
-            // Left
-            AddReachable(x - 1, y);
-            toVisit.Enqueue(new Cell(x - 1, y));
+            foreach (Cell cell in getValuableNeighbours(x, y))
+            {
+                if (!visited.Contains(cell))
+                    safeCells.Add(cell);
+            }
         }
-        if (x >= 0 && y - 1 >= 0)
+        else // add all neighbours, which not in visited or safe
         {
-            // Down
-            AddReachable(x, y - 1);
-            toVisit.Enqueue(new Cell(x, y - 1));
+            foreach (Cell cell in getValuableNeighbours(x, y))
+            {
+                if (!visited.Contains(cell) && !safeCells.Contains(cell))
+                    dangerousCells.Add(cell);
+            }
         }
+        percepted.Clear();
+
+        int z = (int)transform.position.z;
+
+        if (!IsGameEnd)
+        {
+            // Find next cell in safe cells else think about dangerous
+            if (safeCells.Count > 0)
+            {
+                Cell nextCell = null;
+                foreach (Cell safeCell in safeCells)
+                {
+                    nextCell = safeCell;
+                    break;
+                }
+                path = pathTo(nextCell, currCell);
+                if (path == null)
+                {
+                    Debug.LogError("Empty path for safe cell. From: " + currCell + "; to: " + nextCell);
+                    path = new Queue<Cell>();
+                }
+                path.Dequeue();
+                safeCells.Remove(nextCell);
+                isThinking = false;
+            }
+            else
+            {
+                Task task = new Task(() =>
+                    {
+                        Cell nextCell = tryToFindNextCellInDangerous();
+                        if (nextCell != null)
+                        {
+                            positionToMove = new Vector3Int(nextCell.x, nextCell.y, z);
+                            Debug.Log("Next move! " + positionToMove);
+                            ++StepCount;
+                            isThinking = false;
+                        }
+                        else
+                        {
+                            Debug.Log("End of game");
+                            IsGameEnd = true;
+                        }
+                    });
+                task.Start();
+            }
+        }
+    }
+
+
+    private Cell tryToFindNextCellInDangerous()
+    {
+        Vector3Int res = Vector3Int.zero;
+
+        Cell[] dangerousCellsArray = new Cell[dangerousCells.Count];
+        dangerousCells.CopyTo(dangerousCellsArray);
+
+        for (int i = 0; i < dangerousCellsArray.Length; i++)
+        {
+            Cell nextCell = dangerousCellsArray[i];
+
+            Debug.Log("Next move check: " + nextCell);
+            if (brain.Ask(new Not(HasWampus(nextCell.x, nextCell.y))) &&
+                brain.Ask(new Not(HasPit(nextCell.x, nextCell.y))))
+            {
+                dangerousCells.Remove(nextCell);
+                return nextCell;
+            }
+        }
+
+        return null;
+    }
+
+
+    private Queue<Cell> pathTo(Cell destCell, Cell currCell)
+    {
+        Queue<Cell> path = new Queue<Cell>();
+        path.Enqueue(currCell);
+        path = pathTo(currCell, destCell, path);
+        return path;
+    }
+
+
+    private Queue<Cell> pathTo(Cell currCell, Cell destCell, Queue<Cell> path)
+    {
+        if (currCell == destCell)
+            return path;
+
+        List<Cell> visitedNeighbours =
+            getValuableNeighbours(currCell.x, currCell.y)
+                .Where(c => (visited.Contains(c) || c == destCell) && !path.Contains(c))
+                .ToList();
+
+        foreach (Cell visitedNeighbour in visitedNeighbours)
+        {
+            path.Enqueue(visitedNeighbour);
+            Queue<Cell> newPath = pathTo(visitedNeighbour, destCell, path);
+            if (newPath != null)
+                return newPath;
+            else
+                path.Dequeue();
+        }
+
+        return null;
+    }
+
+
+    private List<Cell> getValuableNeighbours(int x, int y)
+    {
+        List<Cell> neigbours = new List<Cell>();
+
         if (x + 1 >= 0 && x + 1 < MapGenerator.mapSize && y >= 0)
         {
             // Right
-            AddReachable(x + 1, y);
-            toVisit.Enqueue(new Cell(x + 1, y));
+            neigbours.Add(new Cell(x + 1, y));
         }
         if (x >= 0 && y + 1 >= 0 && y + 1 < MapGenerator.mapSize)
         {
             // Up
-            AddReachable(x, y + 1);
-            toVisit.Enqueue(new Cell(x, y + 1));
+            neigbours.Add(new Cell(x, y + 1));
+        }
+        if (x - 1 >= 0 && y >= 0)
+        {
+            // Left
+            neigbours.Add(new Cell(x - 1, y));
+        }
+        if (x >= 0 && y - 1 >= 0)
+        {
+            // Down
+            neigbours.Add(new Cell(x, y - 1));
         }
 
-
-        bool findNextCell = false;
-        int z = (int)transform.position.z;
-        Task task = new Task(() =>
-        {
-            Vector3Int res = Vector3Int.zero; 
-
-            while (toVisit.Count != 0)
-            {
-                Cell next = toVisit.Dequeue();
-
-                Debug.Log("Next move check: " + next);
-                if (brain.Ask(new Not(HasWampus(next.x, next.y))) &&
-                    brain.Ask(new Not(HasPit(next.x, next.y))))
-                {
-                    Debug.Log("Next move!");
-                    res = new Vector3Int(next.x, next.y, z);
-                    findNextCell = true;
-                    Debug.Log(positionToMove);
-                }
-            }
-
-            if (!findNextCell)
-            {
-                Debug.Log("End of game");
-                isGameEnd = true;
-            }
-
-            positionToMove = res;
-            isThinking = false;
-        });
-        task.Start();
-
-
+        return neigbours;
     }
 
 
@@ -223,7 +328,49 @@ public class Player : MonoBehaviour
 
         public override string ToString()
         {
-            return ("(" + x + "; " + y + ")");
+            return ("(" + (x + 1) + "; " + (y + 1) + ")");
+        }
+
+        public override bool Equals(object obj)
+        {
+            //Check for null and compare run-time types.
+            if ((obj == null) || !this.GetType().Equals(obj.GetType()))
+            {
+                return false;
+            }
+            else
+            {
+                Cell cell = (Cell)obj;
+                return (x == cell.x) && (y == cell.y);
+            }
+        }
+
+        public static bool operator ==(Cell c1, Cell c2)
+        {
+            // Check for null on left side.
+            if (System.Object.ReferenceEquals(c1, null))
+            {
+                if (System.Object.ReferenceEquals(c2, null))
+                {
+                    // null == null = true.
+                    return true;
+                }
+
+                // Only the left side is null.
+                return false;
+            }
+            // Equals handles case of null on right side.
+            return c1.Equals(c2);
+        }
+
+        public static bool operator !=(Cell lhs, Cell rhs)
+        {
+            return !(lhs == rhs);
+        }
+
+        public override int GetHashCode()
+        {
+            return (x << 2) ^ y;
         }
     }
 }
