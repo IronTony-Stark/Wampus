@@ -36,6 +36,8 @@ public class Player : MonoBehaviour
     private HashSet<Cell> safeCells;
     private HashSet<Cell> dangerousCells;
 
+    private Animator animator;
+
     private void Start()
     {
         positionToMove = new Vector3Int(0, 0, (int)transform.position.z);
@@ -49,21 +51,23 @@ public class Player : MonoBehaviour
         visited = new HashSet<Cell>();
         safeCells = new HashSet<Cell>();
         dangerousCells = new HashSet<Cell>();
+
+        animator = GetComponent<Animator>();
     }
 
     private void Update()
     {
         transform.position = Vector3.MoveTowards(transform.position, positionToMove, Time.deltaTime * speed);
-
-        if (Input.GetKeyDown(KeyCode.G))
-        {
-            ResetPlayer();
-        }
     }
 
 
     private void FixedUpdate()
     {
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            Debug.Log("Reset");
+            IsGameEnd = true;
+        }
         if (!IsGameEnd && positionToMove == transform.position && !isThinking)
         {
             if (path.Count > 0)

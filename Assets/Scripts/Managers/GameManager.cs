@@ -39,7 +39,7 @@ public class GameManager : MonoBehaviour
         {
             _instance = this;
             DontDestroyOnLoad(this);
-            
+
             mapGenerator = GetComponent<MapGenerator>();
             uiManager = GetComponent<UIManager>();
         }
@@ -51,27 +51,34 @@ public class GameManager : MonoBehaviour
     }
 
 
-    void FixedUpdate(){
-        if (player.IsGameEnd){
+    void FixedUpdate()
+    {
+        if (player.IsGameEnd)
+        {
             player.IsGameEnd = false;
 
-            if (player.IsWin){
+            if (player.IsWin)
+            {
                 uiManager.AddToScore(100);
-            } else if (player.IsLoose){
+            }
+            else if (player.IsLoose)
+            {
                 uiManager.ReduceScore(100);
             }
 
             StartCoroutine(NextLevel());
         }
 
-        if (stepCount != player.StepCount){
+        if (stepCount != player.StepCount)
+        {
             uiManager.ReduceScore(player.StepCount - stepCount);
             stepCount = player.StepCount;
         }
     }
 
 
-    private IEnumerator NextLevel(){
+    private IEnumerator NextLevel()
+    {
         yield return new WaitForSeconds(1);
 
         player.ResetPlayer();
